@@ -1,10 +1,18 @@
-# Xiaomi Redmi Note 9S → postmarketOS (Phosh)
+# Xiaomi Redmi Note 9S → postmarketOS
 
-Pre-built **postmarketOS v25.12 + Phosh** flash bundle for the **Xiaomi Redmi Note 9S** (pmaports codename `xiaomi-miatoll`, SKU `curtana`). Likely also works on the **Redmi Note 9 Pro** (`joyeuse`) and **Note 9 Pro Max** (`excalibur`) — same miatoll family, untested by me. **~10 minutes to lockscreen.** Ships with the Plymouth workaround you'll otherwise hit at the pmOS logo + "Loading…" forever.
+Pre-built **postmarketOS v25.12 + Phosh** flash bundle for the **Xiaomi Redmi Note 9S** (pmaports codename `xiaomi-miatoll`, SKU `curtana`). Likely also works on the **Redmi Note 9 Pro** (`joyeuse`) and **Note 9 Pro Max** (`excalibur`) — same miatoll family, untested by me. **~10 minutes to lockscreen.** Ships with the Plymouth workaround you'll otherwise hit at the pmOS logo + "Loading…" forever. The same hardware also runs classic GNOME on edge (see second row).
+
+**Phosh** (this bundle):
 
 | Lockscreen | App drawer | Console + fastfetch |
 |:---:|:---:|:---:|
 | ![Lockscreen](screenshots/lockscreen.jpg) | ![App drawer](screenshots/app-drawer.jpg) | ![Console](screenshots/console-fastfetch.jpg) |
+
+**Classic GNOME on edge** (`pmbootstrap config ui gnome` + `is_default_channel True`):
+
+| Activities overview | VSCode (dark) | Firefox | Files + Editor |
+|:---:|:---:|:---:|:---:|
+| ![Overview](screenshots/gnome-overview.png) | ![VSCode](screenshots/gnome-vscode.png) | ![Firefox](screenshots/gnome-firefox.png) | ![Files](screenshots/gnome-files.png) |
 
 ## Download
 
@@ -32,7 +40,7 @@ cd redmi-note-9s-postmarketos
 
 ## Prerequisites
 
-**Laptop:** Linux + `fastboot` (`apt install android-tools-fastboot android-sdk-platform-tools-common`, or your distro's equivalent) + `zstd`. USB data cable. Run fastboot with `sudo` if udev rules aren't installed.
+**Laptop:** Linux + `fastboot` (`apt install android-tools-fastboot android-sdk-platform-tools-common`, or your distro's equivalent) + `zstd`. Optional but recommended: `gh` (GitHub CLI) — `download.sh` uses it for faster, resumable transfers if present, otherwise falls back to `curl`. USB data cable. Run fastboot with `sudo` if udev rules aren't installed.
 
 **Phone — bootloader must be unlocked.** Three steps, 5–7 days total:
 
@@ -45,10 +53,7 @@ Verify: `fastboot oem device-info` shows `Device unlocked: true`.
 
 ## Flash
 
-```sh
-cd /path/to/extracted-folder
-sha256sum -c SHA256SUMS                                # all 3 must say OK
-```
+You're already in the cloned repo folder from the **Download** step above — the next commands run from there. `download.sh` already verified checksums; re-run `sha256sum -c SHA256SUMS` only if you suspect corruption.
 
 Power phone off → hold **Volume DOWN + Power** to fastboot → plug USB.
 
@@ -62,7 +67,7 @@ Stop if `product` is anything other than `curtana` (`joyeuse` / `excalibur` are 
 ```sh
 fastboot flash cache    xiaomi-miatoll-boot.img        # ~10 s
 fastboot flash userdata xiaomi-miatoll-root.img        # ~60–120 s, 3 sparse chunks
-fastboot erase dtbo                                    # mainline ignores it
+fastboot erase dtbo                                    # mainline kernel ignores it; clearing stock dtbo avoids stale data
 fastboot flash boot     u-boot-sm7125.img              # ~1 s
 fastboot reboot
 ```
@@ -89,6 +94,25 @@ ssh user@redmi.local      # mDNS — macOS and most Linux work out of the box
 ## Hardware support
 
 `xiaomi-miatoll` is **testing** tier in pmaports. Works: Wi-Fi, cellular voice + data, audio, GPU, sensors. Broken/missing: camera, fingerprint, NFC, HW video decode. Wiki: <https://wiki.postmarketos.org/wiki/Xiaomi_Redmi_Note_9S_(xiaomi-miatoll)>.
+
+### Battery readings (UI-dependent)
+
+The mainline `qcom_qg` fuel-gauge driver reports nonsense for the first few seconds after boot (`capacity=0`, `status=Unknown`) before it settles. The three pmOS UIs handle this differently:
+
+- **Phosh** ✅ — ignores transient readings, works correctly.
+- **Plasma Mobile / GNOME Mobile** ⚠️ — their power daemons (`PowerDevil` / `gnome-settings-daemon`) act on the first reading and trigger `critical-battery-action`, which by default **shuts the phone off seconds after boot**.
+
+If you flash this bundle and pick anything other than Phosh, override the critical-battery action over SSH:
+
+```sh
+# GNOME Mobile
+gsettings set org.gnome.settings-daemon.plugins.power critical-battery-action 'nothing'
+
+# Plasma Mobile
+kwriteconfig5 --file powerdevilrc --group BatteryManagement --key BatteryCriticalAction 0
+```
+
+The setting persists across reboots. The on-screen indicator may still briefly show 0% at boot, but the phone won't shut down on you.
 
 ## Troubleshooting
 

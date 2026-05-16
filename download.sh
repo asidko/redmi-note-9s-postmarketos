@@ -22,21 +22,30 @@ cd "$(dirname "$(readlink -f "$0")")"
 command -v zstd >/dev/null || { echo "ERROR: zstd not installed. Install it (apt install zstd / pacman -S zstd / dnf install zstd)."; exit 1; }
 command -v curl >/dev/null || { echo "ERROR: curl not installed."; exit 1; }
 
+shopt -s nullglob
+
 # Prefer gh if available (uses auth, faster, resumes); fall back to curl.
+echo "==> Fetching ~700 MB of release assets — this takes 1–3 min on a fast link."
 if command -v gh >/dev/null; then
-    echo "==> Fetching latest release via gh ..."
+    echo "    using gh (authenticated, resumable)"
     gh release download --repo "$REPO" --pattern '*.img*' --pattern 'SHA256SUMS' --clobber
 else
-    echo "==> Fetching latest release via curl ..."
+    echo "    using curl (gh CLI not installed — install it for resumable downloads)"
     for f in "${ASSETS[@]}"; do
         echo "    -> $f"
-        curl -fL -o "$f" "https://github.com/${REPO}/releases/latest/download/${f}"
+        curl -fL --progress-bar -o "$f" "https://github.com/${REPO}/releases/latest/download/${f}"
     done
 fi
 
-echo "==> Decompressing .zst archives ..."
-for f in *.img.zst; do
-    [ -f "$f" ] && zstd -d --force "$f"
+zst_files=( *.img.zst )
+if [ ${#zst_files[@]} -eq 0 ]; then
+    echo "ERROR: no .zst archives were downloaded — check network and gh/curl output above."
+    exit 1
+fi
+
+echo "==> Decompressing and removing .zst archives ..."
+for f in "${zst_files[@]}"; do
+    zstd -d --rm --force "$f"
 done
 
 echo "==> Verifying SHA-256 checksums ..."
