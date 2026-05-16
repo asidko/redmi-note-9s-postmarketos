@@ -8,22 +8,20 @@ Pre-built **postmarketOS v25.12 + Phosh** flash bundle for the **Xiaomi Redmi No
 
 ## Download
 
-Binary images live in **[GitHub Releases](../../releases/latest)** (too big for git). You need four files from the latest release:
+```sh
+git clone https://github.com/asidko/redmi-note-9s-postmarketos
+cd redmi-note-9s-postmarketos
+./download.sh                  # grabs binaries from the latest release, decompresses, verifies
+```
+
+`download.sh` fetches the four files below from **[GitHub Releases](../../releases/latest)** (they don't live in git — GitHub's hard limit is 100 MB per file).
 
 | File | Size | Compressed | Goes to |
 |---|---|---|---|
-| `xiaomi-miatoll-boot.img` | 256 MiB | `.img.zst` ~50 MB | `cache` *(kernel partition on miatoll)* |
+| `xiaomi-miatoll-boot.img` | 256 MiB | `.img.zst` ~25 MB | `cache` *(kernel partition on miatoll)* |
 | `xiaomi-miatoll-root.img` | 2.5 GiB | `.img.zst` ~800 MB | `userdata` |
 | `u-boot-sm7125.img` | 1008 KiB | not compressed | `boot` *(mainline U-Boot for SM7125)* |
 | `SHA256SUMS` | — | — | integrity check |
-
-```sh
-# pick a folder, download, decompress, verify
-gh release download --repo asidko/redmi-note-9s-postmarketos --pattern '*.img*' --pattern 'SHA256SUMS'
-# or grab manually from the Releases page
-zstd -d *.zst
-sha256sum -c SHA256SUMS         # all 3 must say OK
-```
 
 ## ⚠️ Read first
 
