@@ -114,6 +114,12 @@ kwriteconfig5 --file powerdevilrc --group BatteryManagement --key BatteryCritica
 
 The setting persists across reboots. The on-screen indicator may still briefly show 0% at boot, but the phone won't shut down on you.
 
+### Charging fix (mainline PM6150 SMB5)
+
+Separate problem from the boot-transient one above: on this kernel, mainline has **no charger driver bound to PM6150's SMB5 peripherals**, so the bootloader-default input current limit (≈ 500 mA SDP fallback) leaves the phone losing charge while plugged in with the screen on. The fuel gauge's `STATUS` is also stuck on `Unknown`, so GNOME shows `battery-missing-symbolic`.
+
+Both are fixed by a companion repo: **<https://github.com/asidko/pm6150-charger-mainline>** — two out-of-tree modules and a 4-line `qcom_qg` patch. Precompiled `.ko` files for this exact bundle's kernel are attached to the [latest release](https://github.com/asidko/pm6150-charger-mainline/releases/latest). After install, charging draws ~700–750 mA at 5 V, the bolt icon shows, and termination at 100 % SoC is enforced.
+
 ## Troubleshooting
 
 - **`fastboot devices` empty / "no permissions":** bad/charge-only cable, missing udev, or run with `sudo`.
