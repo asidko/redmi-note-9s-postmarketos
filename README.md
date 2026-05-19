@@ -93,7 +93,7 @@ ssh user@redmi.local      # mDNS — macOS and most Linux work out of the box
 
 ## Hardware support
 
-`xiaomi-miatoll` is **testing** tier in pmaports. Works: Wi-Fi, cellular voice + data, audio, GPU, sensors. Broken/missing: camera, fingerprint, NFC, HW video decode. Wiki: <https://wiki.postmarketos.org/wiki/Xiaomi_Redmi_Note_9S_(xiaomi-miatoll)>.
+`xiaomi-miatoll` is **testing** tier in pmaports. Works: Wi-Fi, cellular voice + data, audio, GPU, sensors. Broken/missing: fingerprint, NFC, HW video decode. **Camera is fixable** — see *Camera fix* below. Wiki: <https://wiki.postmarketos.org/wiki/Xiaomi_Redmi_Note_9S_(xiaomi-miatoll)>.
 
 ### Battery readings (UI-dependent)
 
@@ -119,6 +119,17 @@ The setting persists across reboots. The on-screen indicator may still briefly s
 Separate problem from the boot-transient one above: on this kernel, mainline has **no charger driver bound to PM6150's SMB5 peripherals**, so the bootloader-default input current limit (≈ 500 mA SDP fallback) leaves the phone losing charge while plugged in with the screen on. The fuel gauge's `STATUS` is also stuck on `Unknown`, so GNOME shows `battery-missing-symbolic`.
 
 Both are fixed by a companion repo: **<https://github.com/asidko/pm6150-charger-mainline>** — two out-of-tree modules and a 4-line `qcom_qg` patch. Precompiled `.ko` files for this exact bundle's kernel are attached to the [latest release](https://github.com/asidko/pm6150-charger-mainline/releases/latest). After install, charging draws ~700–750 mA at 5 V, the bolt icon shows, and termination at 100 % SoC is enforced.
+
+### Camera fix (mainline qcom-camss CSIPHY v1.2.2)
+
+Upstream `qcom-camss` ships a malformed CSIPHY v1.2.2 lane register table for the Atoll family — sensors stream, but no frames reach `/dev/video0`. The companion repo **<https://github.com/asidko/qcom-camss-mainline>** replaces the table and adds the two missing PHY-enable writes (`CTRL0 = 0x02`, `CTRLn(33) = 0x01`) v1.2.2 silicon requires. A drop-in `qcom-camss.ko` for `linux-postmarketos-qcom-sm7125 6.14.7-r0` is attached to the [latest release](https://github.com/asidko/qcom-camss-mainline/releases/latest).
+
+```sh
+curl -fL https://github.com/asidko/qcom-camss-mainline/releases/latest/download/install.sh | sudo bash
+sudo reboot
+```
+
+After reboot, GNOME's **Snapshot** app shows live preview from the 16 MP front (OV16A1Q) and 5 MP macro (S5K5E9). Photo capture and video recording work. Verified on `joyeuse`; `curtana` and `excalibur` should behave identically (same SoC, same DT inheritance) but are untested.
 
 ## Troubleshooting
 
